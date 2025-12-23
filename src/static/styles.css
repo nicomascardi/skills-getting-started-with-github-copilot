@@ -190,8 +190,23 @@ footer {
 .participant-info {
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
 
+.participant-unregister {
+  margin-left: 12px;
+  background: transparent;
+  border: none;
+  color: #c62828;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+}
+
+.participant-unregister:hover {
+  background-color: #ffebee;
+}
 .participant-name {
   font-size: 14px;
   color: #222;
