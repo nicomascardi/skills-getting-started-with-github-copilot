@@ -4,6 +4,39 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  // Helper: simple HTML escape
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  // Helper: derive display name and initials from an email or raw string
+  function formatParticipant(raw) {
+    let local = raw;
+    if (raw.includes("@")) {
+      local = raw.split("@")[0];
+    }
+    // replace separators with spaces
+    local = local.replace(/[\._\-]+/g, " ").trim();
+    const words = local.split(/\s+/).filter(Boolean);
+    const name = words
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
+    let initials = "";
+    if (words.length >= 2) {
+      initials = (words[0][0] + words[1][0]).toUpperCase();
+    } else if (words[0]) {
+      initials = words[0].slice(0, 2).toUpperCase();
+    } else {
+      initials = raw.slice(0, 2).toUpperCase();
+    }
+    return { name: name || raw, initials };
+  }
+
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
@@ -12,19 +45,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Clear loading message
       activitiesList.innerHTML = "";
+      // Reset activity select (keep the placeholder option)
+      activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
         const activityCard = document.createElement("div");
         activityCard.className = "activity-card";
 
-        const spotsLeft = details.max_participants - details.participants.length;
+        const spotsLeft = details.max_participants - (details.participants?.length || 0);
+
+        // Build participants HTML
+        const participants = Array.isArray(details.participants) ? details.participants : [];
+        let participantsHTML = "";
+        if (participants.length === 0) {
+          participantsHTML = `<p class="participants-empty">No participants yet.</p>`;
+        } else {
+          participantsHTML = `<div class="participants-section"><h5>Participants (${participants.length})</h5><ul class="participants-list">` +
+            participants
+              .map((p) => {
+                const { name: displayName, initials } = formatParticipant(p);
+                return `<li class="participant"><span class="avatar">${escapeHtml(initials)}</span><div class="participant-info"><span class="participant-name">${escapeHtml(displayName)}</span><small class="participant-email">${escapeHtml(p)}</small></div></li>`;
+              })
+              .join("") +
+            `</ul></div>`;
+        }
 
         activityCard.innerHTML = `
-          <h4>${name}</h4>
-          <p>${details.description}</p>
-          <p><strong>Schedule:</strong> ${details.schedule}</p>
+          <h4>${escapeHtml(name)}</h4>
+          <p>${escapeHtml(details.description)}</p>
+          <p><strong>Schedule:</strong> ${escapeHtml(details.schedule)}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          ${participantsHTML}
         `;
 
         activitiesList.appendChild(activityCard);
